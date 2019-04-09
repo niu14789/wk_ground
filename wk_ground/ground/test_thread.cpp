@@ -62,7 +62,7 @@ void CgroundDlg::parse_landing_area(unsigned char * data,unsigned int len)
 	if( data[2] == 0 && data[3] == 0 )
 	{
 		char buffer[64];
-		sprintf(buffer,"降落点设置成功，降落位置为：起飞点：%lf %lf",lat_global_rt,lon_global_rt);
+		sprintf(buffer,"降落点设置成功，降落位置为:%lf %lf",lat_global_rt,lon_global_rt);
 		tip_one_line(buffer);
 		/* switch */
 		test_smd = 3;
@@ -211,7 +211,7 @@ void CgroundDlg::fm_test_rev_thread(unsigned char ID,unsigned char * data,unsign
 	  case 229:
 		  parse_payload(data,len);
 		  break;
-	  case 39:
+	  case 47:
 		  if( test_smd == 2 )
 		  {
 			  parse_landing_area(data,len);
