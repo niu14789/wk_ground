@@ -16,12 +16,17 @@ CRect m_rect,m_orignal;
 static unsigned char show_and_hide = 0;
 static unsigned char receive_buf[270];
 
-static double lon_global_rt = 0;
-static double lat_global_rt = 0;
+double lon_global_rt = 0;
+double lat_global_rt = 0;
+
+static unsigned int focus_on_time = 0;
 
 static unsigned int pos_switch = 0;
 
-mission_interface_def mission_interface;
+mission_interface_def mission_interface[10];//10 lines
+
+/* ---------------*/
+static unsigned char open_flag = 0 ;
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
@@ -73,6 +78,8 @@ void CgroundDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_MSCOMM1, m_mscomm);
 	DDX_Control(pDX, IDC_BUTTON13, m_com_open_button);
 	DDX_Control(pDX, IDC_COMBO1, m_combox_target);
+	DDX_Control(pDX, IDC_LIST1, m_test_list);
+	DDX_Control(pDX, IDC_LIST2, m_list_box);
 }
 
 BEGIN_MESSAGE_MAP(CgroundDlg, CDialogEx)
@@ -150,78 +157,6 @@ static double line_def_def[51][3] = {
 {22.535523,113.915071,1},
 {22.535628,113.914462,-1},
 };
-static double lines_grounp0[1000][3];
-static double lines_grounp1[1000][3];
-static double lines_grounp2[1000][3];
-/*------------------*/
-void create_lines(void)
-{
-	double base_lat = 22.544326;
-	double base_lon = 113.908574;
-	double base_step_lon = 0.0042;
-	double base_step_lat = 0.000433;
-	/*-------------------*/
-	double curren_lat = base_lat;
-	double curren_lon = base_lon;
-	/*-------------------*/
-	for( int i = 0 ; i < 1000 ; i ++ )
-	{
-		if( i == 0 )
-		{
-			lines_grounp0[i][0] = base_lat;
-			lines_grounp0[i][1] = base_lon;
-		}else
-		{
-			if( (i % 2) == 0 )
-			{
-				curren_lat -= base_step_lat;
-			}
-
-			if( (i % 4) == 1 || (i % 4) == 2 )
-			{
-				curren_lon = base_lon - base_step_lon;
-			}else
-			{
-				curren_lon = base_lon;
-			}
-
-			lines_grounp0[i][0] = curren_lat;
-			lines_grounp0[i][1] = curren_lon;
-		}
-	}
-	/*------------------*/
-	base_step_lon += base_step_lon+base_step_lon;
-	curren_lat = base_lat;
-	curren_lon = base_lon;
-	/*-------------------*/
-	for( int i = 0 ; i < 1000 ; i ++ )
-	{
-		if( i == 0 )
-		{
-			lines_grounp1[i][0] = base_lat;
-			lines_grounp1[i][1] = base_lon;
-		}else
-		{
-			if( (i % 2) == 0 )
-			{
-				curren_lat -= base_step_lat;
-			}
-
-			if( (i % 4) == 1 || (i % 4) == 2 )
-			{
-				curren_lon = base_lon - base_step_lon;
-			}else
-			{
-				curren_lon = base_lon;
-			}
-
-			lines_grounp1[i][0] = curren_lat;
-			lines_grounp1[i][1] = curren_lon;
-		}
-	}
-}
-/* -----------------*/
-
 
 BOOL CgroundDlg::OnInitDialog()
 {
@@ -255,52 +190,41 @@ BOOL CgroundDlg::OnInitDialog()
 	// TODO: 在此添加额外的初始化代码
 	GetClientRect(&m_rect);
 	GetClientRect(&m_orignal);
-	m_web.Navigate(_T("E:/huba_map/map_huba.html"),NULL,NULL,NULL,NULL);
+	m_web.Navigate(_T("E:\\wk_ground\\wk_ground\\ground\\map_huba.html"),NULL,NULL,NULL,NULL);
 	/*------------------------------*/
-	create_lines();
-	/*------------------------------*/
-	mission_interface.current_index = 0;
-	mission_interface.start_flag = 0xffff;//not display
-    mission_interface.display_num = 0;
-	mission_interface.mission[mission_interface.current_index].points_num = 0;
+	focus_on_time = 0;
+	/*---- read from files ----*/
+	mission_interface[0].start_flag = 0xffff;//not display
+    mission_interface[0].display_num = 0;
+	mission_interface[0].points_num = 0;
 	/*----------------------------------*/
 	for( unsigned int i = 1 ; i < 51 ; i ++ )
 	{
-		mission_interface.mission[mission_interface.current_index].waypoints[i].lat = line_def_def[i][0];
-		mission_interface.mission[mission_interface.current_index].waypoints[i].lon = line_def_def[i][1];
-		mission_interface.mission[mission_interface.current_index].waypoints[i].height = 105;
-	    mission_interface.mission[mission_interface.current_index].waypoints[i].speed = 13.5;
-		mission_interface.mission[mission_interface.current_index].waypoints[i].seq = i;
-		mission_interface.mission[mission_interface.current_index].waypoints[i].command = 0x10;
-		mission_interface.mission[mission_interface.current_index].waypoints[i].autocontinue = 1;
-		mission_interface.mission[mission_interface.current_index].points_num++;
+		mission_interface[0].mission[i].x = line_def_def[i][0];
+		mission_interface[0].mission[i].y = line_def_def[i][1];
+		mission_interface[0].mission[i].z = 105;
+		mission_interface[0].mission[i].param4 = 13.5;
+		mission_interface[0].mission[i].seq = i;
+		mission_interface[0].mission[i].command = 0x01;
+		mission_interface[0].mission[i].autocontinue = 1;
+		mission_interface[0].points_num++;
+		/* take pictures or not */
+		mission_interface[0].mission[i].param1 = (i%2)?0:1;
+		mission_interface[0].mission[i].target_system = 0x4E;
+		mission_interface[0].mission[i].target_component = 0x7E;
+		mission_interface[0].mission[i].frame = 0;
+		mission_interface[0].mission[i].current = 0;
 	}
 	/*------------------------------*/
-	mission_interface.mission[mission_interface.current_index].waypoints[1].autocontinue = 0;
-	int tmp = mission_interface.mission[mission_interface.current_index].points_num;
-	mission_interface.mission[mission_interface.current_index].waypoints[tmp].autocontinue = 0;
+	int tmp = mission_interface[0].points_num;
+	/* set autocontinue to 0 */
+	mission_interface[0].mission[1].autocontinue = 0;
+	mission_interface[0].mission[tmp].autocontinue = 0;
 	/*------------------------------*/
-	/*------------------------------*/
-	mission_interface.current_index = 1;
-	mission_interface.start_flag = 0xffff;//not display
-    mission_interface.display_num = 0;
-	mission_interface.mission[mission_interface.current_index].points_num = 0;
-	/*----------------------------------*/
-	for( unsigned int i = 1 ; i < 20 ; i ++ )
-	{
-		mission_interface.mission[mission_interface.current_index].waypoints[i].lat = lines_grounp1[i-1][0];
-		mission_interface.mission[mission_interface.current_index].waypoints[i].lon = lines_grounp1[i-1][1];
-		mission_interface.mission[mission_interface.current_index].waypoints[i].height = 105;
-	    mission_interface.mission[mission_interface.current_index].waypoints[i].speed = 13.5;
-		mission_interface.mission[mission_interface.current_index].waypoints[i].seq = i;
-		mission_interface.mission[mission_interface.current_index].waypoints[i].command = 0x10;
-		mission_interface.mission[mission_interface.current_index].waypoints[i].autocontinue = 1;
-		mission_interface.mission[mission_interface.current_index].points_num++;
-	}
-	/*------------------------------*/
-	mission_interface.mission[mission_interface.current_index].waypoints[1].autocontinue = 0;
-	tmp = mission_interface.mission[mission_interface.current_index].points_num;
-	mission_interface.mission[mission_interface.current_index].waypoints[tmp].autocontinue = 0;
+
+	m_list_box.ResetContent();
+	m_list_box.AddString(_T("先打开测试文件，再打开始测试"));
+
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -365,22 +289,20 @@ void CgroundDlg::OnSize(UINT nType, int cx, int cy)
     // TODO: Add your message handler code here  
     CWnd *pWnd;   
 
-    pWnd = GetDlgItem(IDC_EXPLORER1);  
+   pWnd = GetDlgItem(IDC_EXPLORER1);  
     ChangeSize(pWnd, cx, cy,0);  
 
-	//pWnd = GetDlgItem(IDC_LIST1);  
-	//ChangeSize(pWnd, cx, cy,0);
-
-	pWnd = GetDlgItem(IDC_STATIC_TIP);  
-	ChangeSize(pWnd, cx, cy,2);
-	/*
-	pWnd = GetDlgItem(IDC_BUTTON10);  
-	ChangeSize(pWnd, cx, cy,1);
+    pWnd = GetDlgItem(IDC_LIST1);  
+    ChangeSize(pWnd, cx, cy,0); 
+	
+	
+	//pWnd = GetDlgItem(IDC_BUTTON10);  
+	//ChangeSize(pWnd, cx, cy,1);
 
 
-	pWnd = GetDlgItem(IDC_BUTTON13);  
-	ChangeSize(pWnd, cx, cy,1);
-	*/
+	//pWnd = GetDlgItem(IDC_BUTTON13);  
+	//ChangeSize(pWnd, cx, cy,1);
+	
 	//pWnd = GetDlgItem(IDC_BUTTON14);  
 	//ChangeSize(pWnd, cx, cy,1);
 
@@ -463,16 +385,48 @@ void CgroundDlg::OnBnClickedButton2()
 
 void CgroundDlg::OnBnClickedButton3()
 {
-	// TODO: 在此添加控件通知处理程序代码
-// TODO: 在此添加控件通知处理程序代码
-   	CComQIPtr<IHTMLDocument2> spDoc = m_web.get_Document();
-	CComDispatchDriver spScript;
-	spDoc->get_Script(&spScript);
-   //113.913834,22.55618
-	CComVariant var[3],varRet;
-	spScript.Invoke0(L"set_point_start",&varRet);	// TODO: 在此添加控件通知处理程序代码
+//	// TODO: 在此添加控件通知处理程序代码
+//// TODO: 在此添加控件通知处理程序代码
+//   	CComQIPtr<IHTMLDocument2> spDoc = m_web.get_Document();
+//	CComDispatchDriver spScript;
+//	spDoc->get_Script(&spScript);
+//   //113.913834,22.55618
+//	CComVariant var[3],varRet;
+//	spScript.Invoke0(L"set_point_start",&varRet);	// TODO: 在此添加控件通知处理程序代码、、
+	if( !open_flag)
+	{
+		AfxMessageBox(_T("先打开串口，并连接电台"));
+		return;
+	}
+	tip_one_line("测试开始,启动测试线程");
+  tip_one_line("正在获取版本号");
+  /* set the time to focus */
+  focus_on_time = 0;
+  /* start the test thread */
+  SetTimer(3,1000,NULL);
+  /*-----------------------*/
 }
 
+void CgroundDlg::tip_one_line(const char * format)
+{
+	char time_buffer[200];
+	SYSTEMTIME st;
+	GetLocalTime(&st);
+	sprintf_s(time_buffer,sizeof(time_buffer),"[%02d:%02d:%02d_%03d]：%s",st.wHour,st.wMinute,st.wSecond,st.wMilliseconds,format);
+	/* set to m_list box */
+	CString d0;
+	/* transform */
+	USES_CONVERSION;
+
+	d0 = A2T(time_buffer);
+
+	m_list_box.AddString(d0);
+
+	int count = 0;
+	count = m_list_box.GetCount ();
+
+	m_list_box.SetCurSel (count - 1);
+}
 double pos[100][2];
 
 static unsigned int index = 0;
@@ -481,40 +435,43 @@ static unsigned int freq = 0;
 
 void CgroundDlg::OnBnClickedButton4()
 {
-	// TODO: 在此添加控件通知处理程序代码,
-   	CComQIPtr<IHTMLDocument2> spDoc = m_web.get_Document();
-	CComDispatchDriver spScript;
-	spDoc->get_Script(&spScript);
-   //113.913834,22.55618
-	CComVariant var[3],varRet;
+	//// TODO: 在此添加控件通知处理程序代码,
+ //  	CComQIPtr<IHTMLDocument2> spDoc = m_web.get_Document();
+	//CComDispatchDriver spScript;
+	//spDoc->get_Script(&spScript);
+ //  //113.913834,22.55618
+	//CComVariant var[3],varRet;
 
-	while(1)
+	//while(1)
+	//{
+
+	//	var[0] = index;
+	//	var[1] = switch_one;
+	//	spScript.Invoke2(L"get_info",&var[0],&var[1],&varRet);	// TODO: 在此添加控件通知处理程序代码
+
+	//	pos[index][switch_one] = varRet.dblVal;
+
+	//	if( pos[index][switch_one] == 0 )
+	//	{
+	//		break;
+	//	}
+
+	//	switch_one ^= 1;
+
+	//	freq ++;
+
+	//	if( freq >=2 )
+	//	{
+	//		freq = 0;
+	//		index ++;
+	//	}
+	//	
+	//}
+	//
+	if( lon_global_rt != 0 && lat_global_rt != 0 )
 	{
-
-		var[0] = index;
-		var[1] = switch_one;
-		spScript.Invoke2(L"get_info",&var[0],&var[1],&varRet);	// TODO: 在此添加控件通知处理程序代码
-
-		pos[index][switch_one] = varRet.dblVal;
-
-		if( pos[index][switch_one] == 0 )
-		{
-			break;
-		}
-
-		switch_one ^= 1;
-
-		freq ++;
-
-		if( freq >=2 )
-		{
-			freq = 0;
-			index ++;
-		}
-		
+	   fucus_on_map((float)lon_global_rt,(float)lat_global_rt);
 	}
-	
-
 	/*----------*/
 }
 
@@ -591,13 +548,13 @@ void CgroundDlg::draw_lines_thread(void)
 	//spDoc->get_Script(&spScript);
 	//CComVariant var[3],varRet;
 	/*------------------*/
-	if( mission_interface.start_flag == 1 )
+	if( mission_interface[0].start_flag == 1 )
 	{
 		/*---------------------------------------*/
-		if( mission_interface.display_num == mission_interface.mission[mission_interface.current_index].points_num )
+		if( mission_interface[0].display_num == mission_interface[0].points_num )
 		{
-			double lon_tmp_f = mission_interface.mission[mission_interface.current_index].waypoints[1].lon;
-		    double lat_tmp_f = mission_interface.mission[mission_interface.current_index].waypoints[1].lat;
+			double lon_tmp_f = mission_interface[0].mission[1].y;
+		    double lat_tmp_f = mission_interface[0].mission[1].x;
 			///*---------------------------------*/
 			//fucus_on_map((float)lon_tmp_f,(float)lat_tmp_f);
 		    //var[0] = 1;
@@ -612,8 +569,8 @@ void CgroundDlg::draw_lines_thread(void)
 				move_aircraft((float)lon_global_rt,(float)lat_global_rt,0,3);
 			}
 			/* Kill */
-			mission_interface.start_flag = 0xffff;
-			mission_interface.display_num = 0;
+			mission_interface[0].start_flag = 0xffff;
+			mission_interface[0].display_num = 0;
 			KillTimer(2);
 			/*-------------------*/
 			pos_switch = 0;
@@ -621,9 +578,9 @@ void CgroundDlg::draw_lines_thread(void)
 			return;
 		}
 		/*---------------------------------------*/
-		int num = mission_interface.display_num + 1;
-		double lon_tmp = mission_interface.mission[mission_interface.current_index].waypoints[num].lon;
-		double lat_tmp = mission_interface.mission[mission_interface.current_index].waypoints[num].lat;
+		int num = mission_interface[0].display_num + 1;
+		double lon_tmp = mission_interface[0].mission[num].y;
+		double lat_tmp = mission_interface[0].mission[num].x;
 		/* draw lines */
 		move_aircraft((float)lon_tmp,(float)lat_tmp,0,3);
 		//var[0] = lon_tmp;
@@ -632,15 +589,15 @@ void CgroundDlg::draw_lines_thread(void)
 		//spScript.Invoke2(L"set_polyline_data",&var[0],&var[1],&varRet);//set_polygon_data
 		//spScript.Invoke2(L"set_polygon_data",&var[0],&var[1],&varRet);
 		/*---------------------------*/
-		mission_interface.display_num++;
+		mission_interface[0].display_num++;
 		/*---------------------------*/
 	}
 }
 
 void CgroundDlg::OnBnClickedButton7()
 {
-	double lon_tmp_f = mission_interface.mission[mission_interface.current_index].waypoints[1].lon;
-	double lat_tmp_f = mission_interface.mission[mission_interface.current_index].waypoints[1].lat;
+	double lon_tmp_f = mission_interface[0].mission[1].y;
+	double lat_tmp_f = mission_interface[0].mission[1].x;
 	/*---------------------------------*/
 	fucus_on_map((float)lon_tmp_f,(float)lat_tmp_f);
 }
@@ -785,6 +742,8 @@ void CgroundDlg::gs_d_icr(unsigned char c)
 			 cnt = 0;
 			 if(crc == holder_check_crc(0,receive_buf,(receive_buf[3]+6)))
 			 {		
+				fm_test_rev_thread(receive_buf[5],receive_buf+6,receive_buf[3]);
+
 			    if( receive_buf[5] == 33 || receive_buf[5] == 30 )
 				{
 					show_position(&receive_buf[6],receive_buf[3]);
@@ -835,8 +794,6 @@ void CgroundDlg::OnCommMscomm1()
 	}
 }
 
-/* ---------------*/
-static unsigned char open_flag = 0 ;
 
 void CgroundDlg::OnBnClickedButton13()
 {
@@ -858,7 +815,7 @@ void CgroundDlg::OnBnClickedButton13()
         m_mscomm.put_InputMode(1);//
         m_mscomm.put_RThreshold(1);//
 		
-		m_mscomm.put_Settings(_T("9600,n,8,1"));
+		m_mscomm.put_Settings(_T("57600,n,8,1"));
 	
         if (!m_mscomm.get_PortOpen())//
         {
@@ -969,8 +926,16 @@ void CgroundDlg::show_position(unsigned char * data,unsigned int len)
 		/*-------------------------*/
 		lon_global_rt = lon;
 		lat_global_rt = lat;
-		/*-------------------------*/
-		move_aircraft((float)lon,(float)lat,(int)psi,2);
+		/* focus to aircraft */
+		if( lon_global_rt != 0 && lat_global_rt != 0 )
+		{
+			if( focus_on_time++ < 100 )
+			{
+			  fucus_on_map((float)lon_global_rt,(float)lat_global_rt);
+			}
+			/*-------------------------*/
+			move_aircraft((float)lon,(float)lat,(int)psi,2);
+		}
 	}else if( len == 16 )
 	{
 		float * tmp_f = (float *)data;
@@ -987,6 +952,9 @@ void CgroundDlg::OnTimer(UINT_PTR nIDEvent)
 	  heat_beats();
 	case 2:
 		draw_lines_thread();
+	break;
+	case 3:
+		test_thread_timer();
 	break;
     default:break;
   }
@@ -1035,16 +1003,15 @@ void CgroundDlg::OnCbnSelchangeCombo1()
 	//spScript.Invoke0(L"draw_start",&varRet);//
 	//spScript.Invoke0(L"draw_pgon_start",&varRet);
 	/*----------------------*/
-	if( mission_interface.start_flag != 1 )
+	if( mission_interface[0].start_flag != 1 )
 	{
 		OnBnClickedButton10();
 
-		mission_interface.current_index = index;
-		mission_interface.start_flag = 1;//start display
-		mission_interface.display_num = 0;
+		mission_interface[0].start_flag = 1;//start display
+		mission_interface[0].display_num = 0;
 		/*--------------------------------*/
-		double lon_tmp_f = mission_interface.mission[mission_interface.current_index].waypoints[1].lon;
-		double lat_tmp_f = mission_interface.mission[mission_interface.current_index].waypoints[1].lat;
+		double lon_tmp_f = mission_interface[0].mission[1].y;
+		double lat_tmp_f = mission_interface[0].mission[1].x;
 		/*---------------------------------*/
 		fucus_on_map((float)lon_tmp_f,(float)lat_tmp_f);
 		/*---------------------------------*/

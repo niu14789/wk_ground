@@ -7,39 +7,78 @@
 #include "afxwin.h"
 #include "mscomm1.h"
 
-typedef struct
+#pragma pack(1) //设置单字节对齐
+typedef struct 
 {
-	double lat;
-	double lon;
-	double height;
-	double speed;
-	int seq;
-	int command;
-	int autocontinue;
-	int rev;
-}waypoints_def;
+	float param1;
+	float param2;
+	float param3;
+	float param4;
+	float x;
+	float y;
+	float z;
+	unsigned short seq;
+	unsigned short command;
+	unsigned char target_system;
+	unsigned char target_component;
+	unsigned char frame;
+	unsigned char current;
+	unsigned char autocontinue;	
+	float gm_teta;
+}mission_item_def;
+
+#pragma pack()
 
 typedef struct
 {
 	char mission_name[32];
-	unsigned int points_num;
-	waypoints_def waypoints[1000];
-}mission_def;
-
-typedef struct
-{
 	unsigned int start_flag;
-	unsigned int current_index;
 	unsigned int display_num;
-	mission_def mission[100];
+	unsigned int points_num;
+	mission_item_def mission[1000];
 }mission_interface_def;
 
+#pragma pack(1) //设置单字节对齐
+typedef struct
+{
+	unsigned short mileage;
+	int flightNum;
+	char radio_id[16];
+	char radio_fw[16];
+	char fm_id[17];
+	char fc_fw[22];//niu 20171206
+	unsigned short gps_fw;
+	unsigned short battery_fw;
+	unsigned short mag1_fw;
+	unsigned short mag2_fw;
+	unsigned short gm_fw;
+	unsigned short esc1_fw;
+	unsigned short esc2_fw;
+	unsigned short esc3_fw;
+	unsigned short esc4_fw;
+	unsigned short sonar_fw;
+	unsigned short vision_fw;
+	unsigned short reserve1;
+	unsigned short reserve2;
+	unsigned short reserve3;
+	unsigned short reserve4;	
+}feima_status_def;
+#pragma pack()
 
 // CgroundDlg 对话框
 class CgroundDlg : public CDialogEx
 {
 // 构造
 public:
+	void CgroundDlg::set_landing_area(void);
+	void CgroundDlg::parse_landing_area(unsigned char * data,unsigned int len) ;
+	void CgroundDlg::parse_payload(unsigned char * data,unsigned int len);
+	void CgroundDlg::get_payload(void);
+	void CgroundDlg::fm_test_rev_thread(unsigned char ID,unsigned char * data,unsigned int len);
+	void CgroundDlg::test_thread_timer(void);
+	void CgroundDlg::parse_version(unsigned char * data,unsigned int len);
+	void CgroundDlg::get_version(void);
+	void CgroundDlg::tip_one_line(const char * format);
 	CgroundDlg(CWnd* pParent = NULL);	// 标准构造函数
 	void CgroundDlg::move_aircraft(float lon,float lat,int psi);
 	void CgroundDlg::OnSize(UINT nType, int cx, int cy);
@@ -97,4 +136,6 @@ public:
 	afx_msg void OnBnClickedButton9();
 	afx_msg void OnCbnSelchangeCombo1();
 	CComboBox m_combox_target;
+	CListCtrl m_test_list;
+	CListBox m_list_box;
 };
