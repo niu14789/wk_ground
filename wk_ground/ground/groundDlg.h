@@ -27,6 +27,26 @@ typedef struct
 	float gm_teta;
 }mission_item_def;
 
+typedef struct
+{
+	unsigned int time_boot_ms;
+	int lat;
+	int lon;
+	int alt;
+	int relative_alt;
+	short vx;
+	short vy;
+	short vz;
+}global_position_int_def;
+
+typedef struct
+{
+	unsigned int time_boot_ms;
+	float roll;
+	float pitch;
+	float yaw;
+}attitude_def;
+
 #pragma pack()
 
 typedef struct
@@ -63,6 +83,38 @@ typedef struct
 	unsigned short reserve3;
 	unsigned short reserve4;	
 }feima_status_def;
+
+typedef struct 
+{
+	unsigned long long time_usec;
+	int lat;
+	int lng;
+	unsigned int alt_msl;
+	unsigned int alt_rel;
+	float roll;
+	float pitch;
+	float yaw;
+	float foc_len;
+	unsigned short img_idx;
+	unsigned char target_system;
+	unsigned char cam_idx;
+	unsigned char flags;
+}camera_feedback_def;
+
+typedef struct 
+{
+	float extra_value;
+	unsigned char target_system;
+	unsigned char target_component;
+	unsigned char session;
+	unsigned char zoom_pos;
+	char zoom_step;
+	unsigned char focus_lock;
+	unsigned char shot;
+	unsigned char command_id;
+	unsigned char extra_param;
+}digicam_control_def;
+
 #pragma pack()
 
 // CgroundDlg 对话框
@@ -70,6 +122,20 @@ class CgroundDlg : public CDialogEx
 {
 // 构造
 public:
+	void CgroundDlg::parse_unclock(unsigned char * data,unsigned int len);
+	void CgroundDlg::take_off_plane(void);
+	void CgroundDlg::parse_unlock_plane(unsigned char * data,unsigned int len);
+	void CgroundDlg::unlock_plane(void);
+	void CgroundDlg::check_waypoints(unsigned char * data,unsigned int len);
+	void CgroundDlg::read_and_check(void);
+	void CgroundDlg::parse_number_of_waypoints(unsigned char * data,unsigned int len);
+	void CgroundDlg::read_number_of_waypoints(void);
+	void CgroundDlg::parse_waypoint_upload(unsigned char * data,unsigned int len);
+	void CgroundDlg::waypoint_upload(void);
+	void CgroundDlg::parse_take_apic(unsigned char * data,unsigned int len);
+	void CgroundDlg::take_a_pic(void);
+	void CgroundDlg::parse_waypoints_num(unsigned char * data,unsigned int len);
+	void CgroundDlg::send_wayponits_mount(void);
 	void CgroundDlg::set_landing_area(void);
 	void CgroundDlg::parse_landing_area(unsigned char * data,unsigned int len) ;
 	void CgroundDlg::parse_payload(unsigned char * data,unsigned int len);
@@ -138,4 +204,10 @@ public:
 	CComboBox m_combox_target;
 	CListCtrl m_test_list;
 	CListBox m_list_box;
+	CStatic m_pos_lat;
+	CStatic m_pos_lon;
+	CStatic m_pos_alt;
+	CStatic m_att_roll;
+	CStatic m_att_pit;
+	CStatic m_att_yaw;
 };

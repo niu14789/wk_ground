@@ -80,6 +80,12 @@ void CgroundDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO1, m_combox_target);
 	DDX_Control(pDX, IDC_LIST1, m_test_list);
 	DDX_Control(pDX, IDC_LIST2, m_list_box);
+	DDX_Control(pDX, IDC_STATIC200, m_pos_lat);
+	DDX_Control(pDX, IDC_STATIC201, m_pos_lon);
+	DDX_Control(pDX, IDC_STATIC202, m_pos_alt);
+	DDX_Control(pDX, IDC_STATIC203, m_att_roll);
+	DDX_Control(pDX, IDC_STATIC205, m_att_pit);
+	DDX_Control(pDX, IDC_STATIC206, m_att_yaw);
 }
 
 BEGIN_MESSAGE_MAP(CgroundDlg, CDialogEx)
@@ -224,6 +230,13 @@ BOOL CgroundDlg::OnInitDialog()
 
 	m_list_box.ResetContent();
 	m_list_box.AddString(_T("先打开测试文件，再打开始测试"));
+
+	m_pos_lat.SetWindowTextW(_T(""));
+	m_pos_lon.SetWindowTextW(_T(""));
+	m_pos_alt.SetWindowTextW(_T(""));
+	m_att_roll.SetWindowTextW(_T(""));
+	m_att_pit.SetWindowTextW(_T(""));
+	m_att_yaw.SetWindowTextW(_T(""));
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -919,10 +932,13 @@ void CgroundDlg::show_position(unsigned char * data,unsigned int len)
 	if( len == 26 )
 	{
 		/*-------------------------*/
-		int *tmp = (int*)data;
+		global_position_int_def pos;
+		/*=========================*/
+		memcpy(&pos,data,len);
 		/*-------------------------*/
-		double lat = (double)tmp[1] / 10000000.0;
-		double lon = (double)tmp[2] / 10000000.0;
+		double lat = (double)pos.lat / 10000000.0;
+		double lon = (double)pos.lon / 10000000.0;
+		double alt = (double)pos.alt / 1000.0;
 		/*-------------------------*/
 		lon_global_rt = lon;
 		lat_global_rt = lat;
@@ -936,7 +952,26 @@ void CgroundDlg::show_position(unsigned char * data,unsigned int len)
 			/*-------------------------*/
 			move_aircraft((float)lon,(float)lat,(int)psi,2);
 		}
-	}else if( len == 16 )
+		/* show off */
+		char buffer[32];
+		CString d0;
+		/* transform */
+		USES_CONVERSION;
+		/*----------------------------------*/
+		sprintf(buffer,"%lf",lat);
+		d0 = A2T(buffer);
+		m_pos_lat.SetWindowTextW(d0);
+		/*----------------------------------*/
+		sprintf(buffer,"%lf",lon);
+		d0 = A2T(buffer);
+		m_pos_lon.SetWindowTextW(d0);
+		/*----------------------------------*/
+		sprintf(buffer,"%lf",alt);
+		d0 = A2T(buffer);
+		m_pos_alt.SetWindowTextW(d0);
+		/*----------------------------------*/
+	}
+	else if( len == 16 )
 	{
 		float * tmp_f = (float *)data;
 

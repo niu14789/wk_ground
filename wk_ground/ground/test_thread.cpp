@@ -10,8 +10,14 @@ extern double lon_global_rt;
 extern double lat_global_rt;
 extern mission_interface_def mission_interface[10];
 
+static unsigned int current_point_index = 1;
+static unsigned int current_read_index = 1;
+
 void CgroundDlg::get_version(void)
 {
+	/*-------------------------*/
+	tip_one_line("正在获取飞控版本！！");
+	/*-------------------------*/
 	unsigned char buff[5];
 
 	fm_link_send(233,buff,0);
@@ -19,6 +25,9 @@ void CgroundDlg::get_version(void)
 /* get payload */
 void CgroundDlg::get_payload(void)//228,229
 {
+	/*-------------------------*/
+	tip_one_line("正在获取载荷类型！！");
+	/*-------------------------*/
 	unsigned char buff[5];
 
 	fm_link_send(228,buff,0);
@@ -50,12 +59,298 @@ void CgroundDlg::set_landing_area(void)
 	/*-------------*/
 	fm_link_send(39,(unsigned char *)&mission_interface[0].mission[0],sizeof(mission_interface[0].mission[0]));
 }
+/* send waypoints num including the zero */
+void CgroundDlg::send_wayponits_mount(void)
+{
+	tip_one_line("正在设置航点总数");
+	unsigned short buffer[2];
+	/* ------------- */
+	buffer[0] = mission_interface[0].points_num + 1;
+	buffer[1] = ( 0x4E << 8 ) | 0x7E;
+	/* set to current */
+	fm_link_send(44,(unsigned char *)buffer,sizeof(buffer));
+}
+/* camera take a pic */
+void CgroundDlg::take_a_pic(void)
+{
+	static unsigned int pic_freq = 0;
+	/*-------------------------*/
+	if( (pic_freq++) % 5 )
+	{
+		return;
+	}
+	/*-------------------------*/
+	tip_one_line("正在试拍！！");
+	/*-------------------------*/
+	static unsigned char pic_s = 1;
+	/*take_pic_btn_event(1);*/
+	digicam_control_def cfd;
+	/*----------------------*/
+	memset(&cfd,0,sizeof(cfd));
+	/*----------------------*/
+	cfd.target_system = 0x4E;
+	cfd.target_component = 0x7E;
+	cfd.session = 0xfe;
+	cfd.command_id = pic_s++;
+    /* send */
+	fm_link_send( 155 , (unsigned char *)&cfd , 13 );
+}
+/* void waypoint upload */
+void CgroundDlg::waypoint_upload(void)
+{
+	char buffer[64];
+	sprintf(buffer,"正在上传航点：%d/%d",current_point_index,mission_interface[0].points_num);
+	tip_one_line(buffer);
+
+	fm_link_send(39,(unsigned char *)&mission_interface[0].mission[current_point_index],
+		sizeof(mission_interface[0].mission[current_point_index]));
+}
+/* read the number of waypoints */
+void CgroundDlg::read_number_of_waypoints(void)
+{
+	/*-------------------------*/
+	tip_one_line("正在回读航点总数......");
+	/*-------------------------*/
+	unsigned char buff[5];
+
+	fm_link_send(43,buff,0);
+}
+/* unclock */
+void CgroundDlg::unlock_plane(void)
+{
+	/*-------------------------*/
+	tip_one_line(" 飞机正在解锁......");
+	/*-------------------------*/
+    unsigned char package[33];
+
+	unsigned short * pd = (unsigned short *)&package[28];
+	float * param = ( float * )package;
+	/*---------------*/
+	*pd = 400;
+	param[0] = 1;
+	/*-------------------------*/
+	fm_link_send(76,package,33);
+	/*-------------------------*/
+}
+/*-------------------------*/
+void CgroundDlg::take_off_plane(void)
+{
+	/*-------------------------*/
+	tip_one_line(" 飞机正在起飞......");
+	/*-------------------------*/
+    unsigned char package[33];
+
+	unsigned short * pd = (unsigned short *)&package[28];
+	float * param = ( float * )package;
+	/*---------------*/
+	*pd = 23;
+	param[0] = 1;
+	/*-------------------------*/
+	fm_link_send(76,package,33);
+	/*-------------------------*/
+}
+/* parse */
+void CgroundDlg::parse_unclock(unsigned char * data,unsigned int len)
+{
+	if( len != 3 )
+	{
+		tip_one_line("解锁协议错误！！");
+		return;
+	}	
+	unsigned short * dt = (unsigned short *)data;
+	/*------------------*/
+	if( dt[0] == 400 )
+	{
+		if( data[2] == 0 )
+		{
+			tip_one_line("解锁成功！！");
+			test_smd = 9;
+		}
+		else
+		{
+			tip_one_line("解锁失败，请检查......！！");
+			test_smd =2000;//中断
+		}
+	}
+}
+/*--------------*/
+void CgroundDlg::parse_unlock_plane(unsigned char * data,unsigned int len)
+{
+	if( len != 3 )
+	{
+		tip_one_line("起飞协议错误！！");
+		return;
+	}	
+	unsigned short * dt = (unsigned short *)data;
+	/*------------------*/
+	if( dt[0] == 23 )
+	{
+		if( data[2] == 0 )
+		{
+			tip_one_line("起飞成功！！");
+			test_smd = 10;
+		}
+		else
+		{
+			tip_one_line("解锁失败，请检查......！！");
+			test_smd =2000;//中断
+		}
+	}
+}
+/* read and check */
+void CgroundDlg::read_and_check(void)
+{
+	char buffer[64];
+	sprintf(buffer,"正在回读并校验航点：%d/%d",current_read_index,mission_interface[0].points_num);
+	tip_one_line(buffer);
+	/*---------------*/
+	unsigned short buf[2];
+
+	buf[0] = current_read_index;
+	buf[1] = 0x4E << 8 | 0x7E;
+	/*------------------------*/
+	fm_link_send(40,(unsigned char *)buf,sizeof(buf));
+	/*------------------------*/
+}
+/* check */
+void CgroundDlg::check_waypoints(unsigned char * data,unsigned int len)
+{
+	if( len != sizeof(mission_item_def) )
+	{
+		tip_one_line("航点协议错误！！");
+		return;
+	}
+	/*-------------------------*/
+	if( memcmp(data,&mission_interface[0].mission[current_read_index],len) == 0 )
+	{
+		char buffer[64];
+		sprintf(buffer,"航点%d回读成功",current_read_index);
+		tip_one_line(buffer);
+		/*---------------*/
+		current_read_index++;
+		/*---------------*/
+		if( current_read_index > mission_interface[0].points_num )
+		{
+			tip_one_line("航点回读校验完成");
+			/* switch */
+			test_smd = 8;
+			/*--------*/
+		}
+	}
+}
+/* number of waypoints parse */
+void CgroundDlg::parse_number_of_waypoints(unsigned char * data,unsigned int len)
+{
+	if( len != 4 )
+	{
+		tip_one_line("航点ACK1协议错误！！");
+		return;;
+	}
+	/* pdf */
+	unsigned short * pdf = ( unsigned short *)data;
+	/*---------*/
+	if( pdf[0] == ( mission_interface[0].points_num + 1 ) )
+	{
+		char buffer[64];
+		sprintf(buffer,"航点总数回读成功 %d",pdf[0]);
+		tip_one_line(buffer);
+		/* swtich */
+		test_smd = 7;
+	}
+}
+/* void waypoint  */
+void CgroundDlg::parse_waypoint_upload(unsigned char * data,unsigned int len)
+{
+	if( len != 4 )
+	{
+		tip_one_line("航点ACK2协议错误！！");
+		return;;
+	}
+	/*-=-----------------------*/
+	unsigned short * pdf = (unsigned short *)data;
+	/*-------------------------*/
+	if( current_point_index == pdf[1] )
+	{
+		char buffer[64];
+		sprintf(buffer,"航点%d上传成功",current_point_index);
+		tip_one_line(buffer);
+		/* next point */
+		current_point_index++;
+		/* done */
+		if( current_point_index > mission_interface[0].points_num )
+		{
+			tip_one_line("航点上传完成");
+			test_smd = 6;
+		}
+	}
+}
+/* void parse take a pic */
+void CgroundDlg::parse_take_apic(unsigned char * data,unsigned int len)
+{
+	if( len != sizeof(camera_feedback_def) )
+	{
+		tip_one_line("180协议错误");
+		return;;
+	}	
+	/* ---------------- */
+	camera_feedback_def cfd;
+	/* jugding */
+	memcpy(&cfd,data,len);
+	/* ok or not */
+	if( cfd.flags == 2 )
+	{
+		char buffer[64];
+		sprintf(buffer,"拍照成功 %d",cfd.img_idx);
+		tip_one_line(buffer);
+		/* switch */
+		test_smd = 4;
+
+	}
+	else if( cfd.flags == 3 )
+	{
+		char buffer[64];
+		sprintf(buffer,"拍照失败 %d",cfd.img_idx);
+		tip_one_line(buffer);
+	}
+	else if( cfd.flags == 1 )
+	{
+		char buffer[64];
+		sprintf(buffer,"收到拍照指令 %d",cfd.img_idx);
+		tip_one_line(buffer);
+	}
+	else
+	{
+		char buffer[64];
+		sprintf(buffer,"未知拍照指令 %d %d",cfd.img_idx,cfd.flags);
+		tip_one_line(buffer);
+	}
+}
+/* parse the landing msg */
+void CgroundDlg::parse_waypoints_num(unsigned char * data,unsigned int len)
+{
+	if( len != 4 )
+	{
+		tip_one_line("航点ACK3协议错误！！");
+		return;;
+	}	
+	/* get data */
+	unsigned short * tu  = (unsigned short *)data;
+	/*----------*/
+	if( tu[1] == ( mission_interface[0].points_num + 1 ) )
+	{
+		char buffer[64];
+		sprintf(buffer,"航点总数下发成功，数量为：%d",tu[1]);
+		tip_one_line(buffer);
+		/* switch */
+		test_smd = 5;
+	}
+}
 /* parse the landing area */
 void CgroundDlg::parse_landing_area(unsigned char * data,unsigned int len)
 {
 	if( len != 4 )
 	{
-		tip_one_line("航点ACK协议错误！！");
+		tip_one_line("航点ACK4协议错误！！");
 		return;;
 	}
 	/* get data */
@@ -169,12 +464,16 @@ void CgroundDlg::parse_version(unsigned char * data,unsigned int len)
 	tip_one_line(buffer);
 	/*--------------------------------------*/
 	/* show radio */
-	sprintf(buffer,"电台ID：%s 电台版本：%s",feima_staus.radio_id,feima_staus.radio_fw);
+	sprintf(buffer,"电台ID：%s",feima_staus.radio_id);
+	/* showe*/
+	tip_one_line(buffer);
+	/* show radio */
+	sprintf(buffer,"电台版本：%s",feima_staus.radio_fw);
 	/* showe*/
 	tip_one_line(buffer);
 	/*--------------------------------------*/
 	/* show fmID */
-	sprintf(buffer,"序列号：%s",feima_staus.fm_id);
+	sprintf(buffer,"飞控序列号：%s",feima_staus.fm_id);
 	/* showe*/
 	tip_one_line(buffer);
 	/*--------------------------------------*/
@@ -216,6 +515,40 @@ void CgroundDlg::fm_test_rev_thread(unsigned char ID,unsigned char * data,unsign
 		  {
 			  parse_landing_area(data,len);
 		  }
+		  else if( test_smd == 4 )
+		  {
+			  parse_waypoints_num(data,len);
+		  }
+		  else if( test_smd == 5 )
+		  {
+			  parse_waypoint_upload(data,len);
+		  }
+		  break;
+	  case 180:
+		  if( test_smd == 3 )
+		  {
+			  parse_take_apic(data,len);
+		  }
+		  else
+		  {
+
+		  }
+		  break;
+	  case 44:
+		  parse_number_of_waypoints(data,len);
+		  break;
+	  case 39:
+		  check_waypoints(data,len);
+		  break;
+	  case 77:
+		  if( test_smd == 8 )
+		  {
+			  parse_unclock(data,len);
+		  }
+		  else if( test_smd == 9 )
+		  {
+			  parse_unlock_plane(data,len);
+		  }
 		  break;
 	  default:
 		  break;
@@ -236,6 +569,27 @@ void CgroundDlg::test_thread_timer(void)
 		set_landing_area();
 		break;
 	case 3:
+		take_a_pic();
+		break;
+	case 4:
+		send_wayponits_mount();
+		break;
+	case 5:
+		waypoint_upload();
+		break;
+	case 6:
+		read_number_of_waypoints();
+		break;
+	case 7:
+		read_and_check();
+		break;
+	case 8:
+		unlock_plane();
+		break;
+	case 9:
+		take_off_plane();
+		break;
+	case 10:
 		break;
 	default:
 		break;
