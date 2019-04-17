@@ -243,7 +243,21 @@ BOOL CgroundDlg::OnInitDialog()
 	m_pic_show.SetWindowTextW(_T(""));
 	m_plane_status.SetWindowTextW(_T(""));
 	m_boot_time.SetWindowTextW(_T(""));
-
+	/*-------------------------------*/
+	/* list contrl */
+	DWORD dwStyle = m_test_list.GetExtendedStyle();     
+	dwStyle |= LVS_EX_FULLROWSELECT;
+	dwStyle |= LVS_EX_GRIDLINES;
+	/*--------*/
+	m_test_list.SetExtendedStyle(dwStyle);
+	/* capute */
+	m_test_list.InsertColumn(0, _T("序号"), LVCFMT_LEFT, 40);
+	m_test_list.InsertColumn(1, _T("测试项描述"), LVCFMT_LEFT, 80);
+	m_test_list.InsertColumn(2, _T("通过条件"), LVCFMT_LEFT, 80);
+	m_test_list.InsertColumn(3, _T("接口函数"), LVCFMT_LEFT, 80);
+	m_test_list.InsertColumn(4, _T("测试状态"), LVCFMT_LEFT, 80);
+	m_test_list.InsertColumn(5, _T("参数"), LVCFMT_LEFT, 80);
+	/*------------------------------*/
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -401,6 +415,7 @@ void CgroundDlg::OnBnClickedButton2()
 	spScript.Invoke0(L"start_draw",&varRet);	// TODO: 在此添加控件通知处理程序代码
 }
 
+char mission_buffer[40];
 
 void CgroundDlg::OnBnClickedButton3()
 {
@@ -423,7 +438,10 @@ void CgroundDlg::OnBnClickedButton3()
   focus_on_time = 0;
   /* start the test thread */
   SetTimer(3,1000,NULL);
-  /*-----------------------*/
+  /* create mission id buffer */
+  SYSTEMTIME st;
+  GetLocalTime(&st);
+  sprintf_s(mission_buffer,sizeof(mission_buffer),"mission--%04d-%02d-%02d-%02d-%02d-%02d-%03d",st.wYear,st.wMonth,st.wDay,st.wHour,st.wMinute,st.wSecond,st.wMilliseconds);
 }
 
 void CgroundDlg::tip_one_line(const char * format)

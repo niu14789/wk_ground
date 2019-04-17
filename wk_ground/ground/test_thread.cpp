@@ -13,6 +13,8 @@ extern mission_interface_def mission_interface[10];
 static unsigned int current_point_index = 1;
 static unsigned int current_read_index = 1;
 
+extern char mission_buffer[40];
+
 void CgroundDlg::get_version(void)
 {
 	/*-------------------------*/
@@ -148,6 +150,30 @@ void CgroundDlg::take_off_plane(void)
 	/*-------------------------*/
 	fm_link_send(76,package,33);
 	/*-------------------------*/
+}
+/* set mission id */
+void CgroundDlg::set_mission_id(void)
+{
+	/*-------------------------*/
+	tip_one_line("正在设置mission ID......");
+	/*-------------------------*/
+	fm_link_send(225,(unsigned char *)mission_buffer,32);
+}
+/* void CgroundDlg */
+void CgroundDlg::mission_id_parse(unsigned char * data,unsigned int len)
+{
+	if( len != 32 )
+	{
+		tip_one_line("missionID 协议错误！！");
+		return;
+	}
+	/* judging */
+	if( memcmp(mission_buffer,data,32) == 0 )
+	{
+		tip_one_line("missionID 设置成功");
+		/* switch */
+		test_smd = 3;
+	}
 }
 /* parse */
 void CgroundDlg::parse_unclock(unsigned char * data,unsigned int len)
@@ -370,7 +396,7 @@ void CgroundDlg::parse_landing_area(unsigned char * data,unsigned int len)
 		sprintf(buffer,"降落点设置成功，降落位置为:%lf %lf",lat_global_rt,lon_global_rt);
 		tip_one_line(buffer);
 		/* switch */
-		test_smd = 3;
+		test_smd = 2000;
 	}
 }
 /*------------------------*/
@@ -566,6 +592,9 @@ void CgroundDlg::fm_test_rev_thread(unsigned char ID,unsigned char * data,unsign
 			  parse_unlock_plane(data,len);
 		  }
 		  break;
+	  case 225:
+		  mission_id_parse(data,len);
+		  break;
 	  default:
 		  break;
 	}
@@ -575,40 +604,43 @@ void CgroundDlg::test_thread_timer(void)
 {
 	switch(test_smd)
 	{
-	case 0:
-		get_version();
-		break;
-	case 1:
-		get_payload();
-		break;
-	case 2:
-		set_landing_area();
-		break;
-	case 3:
-		take_a_pic();
-		break;
-	case 4:
-		send_wayponits_mount();
-		break;
-	case 5:
-		waypoint_upload();
-		break;
-	case 6:
-		read_number_of_waypoints();
-		break;
-	case 7:
-		read_and_check();
-		break;
-	case 8:
-		unlock_plane();
-		break;
-	case 9:
-		take_off_plane();
-		break;
-	case 10:
-		break;
-	default:
-		break;
+		case 0:
+			get_version();
+			break;
+		case 1:
+			get_payload();
+			break;
+		case 2:
+			set_landing_area();
+			break;
+		case 2000:
+			set_mission_id();
+			break;
+		case 3:
+			take_a_pic();
+			break;
+		case 4:
+			send_wayponits_mount();
+			break;
+		case 5:
+			waypoint_upload();
+			break;
+		case 6:
+			read_number_of_waypoints();
+			break;
+		case 7:
+			read_and_check();
+			break;
+		case 8:
+			unlock_plane();
+			break;
+		case 9:
+			take_off_plane();
+			break;
+		case 10:
+			break;
+		default:
+			break;
 	}
 }
 /*---------------------*/
@@ -727,3 +759,4 @@ void CgroundDlg::plane_status_show(unsigned char * data,unsigned int len)
 		}
 	}
 }
+/* set */
