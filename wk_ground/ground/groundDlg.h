@@ -39,14 +39,6 @@ typedef struct
 	short vz;
 }global_position_int_def;
 
-typedef struct
-{
-	unsigned int time_boot_ms;
-	float roll;
-	float pitch;
-	float yaw;
-}attitude_def;
-
 #pragma pack()
 
 typedef struct
@@ -115,6 +107,14 @@ typedef struct
 	unsigned char extra_param;
 }digicam_control_def;
 
+typedef struct
+{
+	unsigned int time_boot_ms;
+	float roll;
+	float pitch;
+	float yaw;
+}attitude_def;
+
 #pragma pack()
 
 // CgroundDlg 对话框
@@ -122,6 +122,9 @@ class CgroundDlg : public CDialogEx
 {
 // 构造
 public:
+	void CgroundDlg::plane_status_show(unsigned char * data,unsigned int len);
+	void CgroundDlg::pic_count(unsigned char * data,unsigned int len);
+	void CgroundDlg::att_show(unsigned char * data,unsigned int len);
 	void CgroundDlg::parse_unclock(unsigned char * data,unsigned int len);
 	void CgroundDlg::take_off_plane(void);
 	void CgroundDlg::parse_unlock_plane(unsigned char * data,unsigned int len);
@@ -210,4 +213,7 @@ public:
 	CStatic m_att_roll;
 	CStatic m_att_pit;
 	CStatic m_att_yaw;
+	CStatic m_pic_show;
+	CStatic m_plane_status;
+	CStatic m_boot_time;
 };

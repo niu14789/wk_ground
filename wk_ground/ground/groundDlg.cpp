@@ -86,6 +86,9 @@ void CgroundDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_STATIC203, m_att_roll);
 	DDX_Control(pDX, IDC_STATIC205, m_att_pit);
 	DDX_Control(pDX, IDC_STATIC206, m_att_yaw);
+	DDX_Control(pDX, IDC_STATIC433, m_pic_show);
+	DDX_Control(pDX, IDC_STATIC675, m_plane_status);
+	DDX_Control(pDX, IDC_STATIC4433, m_boot_time);
 }
 
 BEGIN_MESSAGE_MAP(CgroundDlg, CDialogEx)
@@ -237,6 +240,9 @@ BOOL CgroundDlg::OnInitDialog()
 	m_att_roll.SetWindowTextW(_T(""));
 	m_att_pit.SetWindowTextW(_T(""));
 	m_att_yaw.SetWindowTextW(_T(""));
+	m_pic_show.SetWindowTextW(_T(""));
+	m_plane_status.SetWindowTextW(_T(""));
+	m_boot_time.SetWindowTextW(_T(""));
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }

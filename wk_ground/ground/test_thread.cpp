@@ -296,6 +296,16 @@ void CgroundDlg::parse_take_apic(unsigned char * data,unsigned int len)
 	camera_feedback_def cfd;
 	/* jugding */
 	memcpy(&cfd,data,len);
+	/*------------------*/
+	char buffer[32];
+	CString d0;
+	/* transform */
+	USES_CONVERSION;
+	/*--------------------------------*/
+	sprintf(buffer,"%d",cfd.img_idx);
+	d0 = A2T(buffer);
+	m_pic_show.SetWindowTextW(d0);
+	/*--------------------------------*/
 	/* ok or not */
 	if( cfd.flags == 2 )
 	{
@@ -390,7 +400,7 @@ void CgroundDlg::parse_payload(unsigned char * data,unsigned int len)
 	}
 	else if( type_l == 101 )
 	{
-		tip_one_line("D200 A6000五相机！！");
+		tip_one_line("D200 五相机！！");
 	}
 	else if( type_l == 102 )
 	{
@@ -510,6 +520,12 @@ void CgroundDlg::fm_test_rev_thread(unsigned char ID,unsigned char * data,unsign
 	  case 229:
 		  parse_payload(data,len);
 		  break;
+	  case 30:
+		  att_show(data,len);
+		  break;
+	  case 42:
+		  plane_status_show(data,len);
+		  break;
 	  case 47:
 		  if( test_smd == 2 )
 		  {
@@ -531,7 +547,7 @@ void CgroundDlg::fm_test_rev_thread(unsigned char ID,unsigned char * data,unsign
 		  }
 		  else
 		  {
-
+			  pic_count(data,len);
 		  }
 		  break;
 	  case 44:
@@ -593,5 +609,121 @@ void CgroundDlg::test_thread_timer(void)
 		break;
 	default:
 		break;
+	}
+}
+/*---------------------*/
+void CgroundDlg::att_show(unsigned char * data,unsigned int len)
+{
+	if( len != sizeof(attitude_def) )
+	{
+		tip_one_line("姿态协议错误！！");
+		return;
+	}
+	attitude_def att;
+	/* set to  memory */
+	memcpy(&att,data,len);
+	/* show */
+	char buffer[32];
+	CString d0;
+	/* transform */
+	USES_CONVERSION;
+	/* show */
+	sprintf(buffer,"%3.2f",att.roll);
+	d0 = A2T(buffer);
+	m_att_roll.SetWindowTextW(d0);
+	/*--------------------------------*/
+	sprintf(buffer,"%3.2f",att.pitch);
+	d0 = A2T(buffer);
+	m_att_pit.SetWindowTextW(d0);
+	/*--------------------------------*/
+	sprintf(buffer,"%3.2f",att.yaw);
+	d0 = A2T(buffer);
+	m_att_yaw.SetWindowTextW(d0);
+	/*--------------------------------*/
+	sprintf(buffer,"%f s",(float)att.time_boot_ms / 1000);
+	d0 = A2T(buffer);
+	m_boot_time.SetWindowTextW(d0);
+}
+/* void parse take a pic */
+void CgroundDlg::pic_count(unsigned char * data,unsigned int len)
+{
+	if( len != sizeof(camera_feedback_def) )
+	{
+		tip_one_line("180协议错误");
+		return;
+	}	
+	/* ---------------- */
+	camera_feedback_def cfd;
+	/* jugding */
+	memcpy(&cfd,data,len);
+	/*------------------*/
+	char buffer[32];
+	CString d0;
+	/* transform */
+	USES_CONVERSION;
+	/*--------------------------------*/
+	sprintf(buffer,"%d",cfd.img_idx);
+	d0 = A2T(buffer);
+	m_pic_show.SetWindowTextW(d0);
+	/*--------------------------------*/
+}
+/* show plane status */
+void CgroundDlg::plane_status_show(unsigned char * data,unsigned int len)
+{
+	static unsigned short current_last = 0xffff;
+
+	if( len != 2 )
+	{
+		tip_one_line("飞行状态协议错误");
+		return;
+	}
+	/*------------------*/
+	char buffer[32];
+	CString d0;
+	/* transform */
+	USES_CONVERSION;
+	unsigned short * current_seq = (unsigned short *)data;
+	/*-----------------------*/
+	if( *current_seq != current_last )
+	{
+		current_last = *current_seq;
+		/* show */
+		if( current_last >= 1000 )
+		{
+			switch(current_last)
+			{
+				case 1001:
+					/*--------------------------------*/
+					m_plane_status.SetWindowTextW(_T("飞机正在返航"));
+					tip_one_line("飞机正在返航");
+					/*--------------------------------*/
+					break;
+				case 1004:
+					/*--------------------------------*/
+					m_plane_status.SetWindowTextW(_T("飞机正在悬停"));
+					tip_one_line("飞机正在悬停");
+					/*--------*/
+					break;
+				case 1008:
+					/*--------------------------------*/
+					m_plane_status.SetWindowTextW(_T("飞机正在返航"));
+					tip_one_line("飞机正在返航");
+					/*--------*/
+					break;
+				default:
+					sprintf(buffer,"飞机状态 %d ",current_last);
+					tip_one_line(buffer);
+					d0 = A2T(buffer);
+					m_plane_status.SetWindowTextW(d0);
+					break;
+			}
+		}
+		else
+		{
+			sprintf(buffer,"正飞往第%d个航点",current_last);
+			tip_one_line(buffer);
+			d0 = A2T(buffer);
+			m_plane_status.SetWindowTextW(d0);
+		}
 	}
 }
