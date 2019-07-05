@@ -258,6 +258,8 @@ BOOL CgroundDlg::OnInitDialog()
 	m_test_list.InsertColumn(4, _T("测试状态"), LVCFMT_LEFT, 80);
 	m_test_list.InsertColumn(5, _T("参数"), LVCFMT_LEFT, 80);
 	/*------------------------------*/
+	read_files();
+	/*------------------------------*/
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -328,7 +330,63 @@ void CgroundDlg::OnSize(UINT nType, int cx, int cy)
     pWnd = GetDlgItem(IDC_LIST1);  
     ChangeSize(pWnd, cx, cy,0); 
 	
-	
+	pWnd = GetDlgItem(IDC_LIST2);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC5654);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC63562);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC24526);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC23626);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC201);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC202);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC200);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC675);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC2342);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC2345245);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC234525);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC203);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC205);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC206);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC23452);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC6226);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC433);
+    ChangeSize(pWnd, cx, cy,0); 
+
+	pWnd = GetDlgItem(IDC_STATIC4433);
+    ChangeSize(pWnd, cx, cy,0); 
+
 	//pWnd = GetDlgItem(IDC_BUTTON10);  
 	//ChangeSize(pWnd, cx, cy,1);
 
@@ -1079,4 +1137,19 @@ void CgroundDlg::OnCbnSelchangeCombo1()
 		SetTimer(2,10,NULL);
 		/*--------------------------------*/
 	}
+}
+/* read test file */
+void CgroundDlg::read_files(void)
+{
+	FILE * fp;
+	/*-------*/
+	fopen_s(&fp,"base_fun_test.txt","rb");
+	/* ok */
+	if( fp == NULL)
+	{
+		AfxMessageBox(_T("测试文件读取失败"));
+		return;
+	}
+	/*----------------------*/
+
 }

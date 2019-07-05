@@ -122,6 +122,7 @@ class CgroundDlg : public CDialogEx
 {
 // ππ‘Ï
 public:
+	void CgroundDlg::read_files(void);
 	void CgroundDlg::mission_id_parse(unsigned char * data,unsigned int len);
 	void CgroundDlg::set_mission_id(void);
 	void CgroundDlg::plane_status_show(unsigned char * data,unsigned int len);
